@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sonalake Calculator</title>
+    <style type="text/css">
+        div.fleft { float:left; padding: 10px; }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="countryService.js"></script>
+    <script src="nbpService.js"></script>
+</head>
+<body>
+    <h2>Sonalake Calculator - Slawomir Korbas</h2>
+    <form>
+        <div class="fleft">
+            Country <br/><select id="countrySelect"></select>
+        </div>
+        <div class="fleft">
+            Daily brutto income <br/><input type="text" id="dailyBruttoInCurrency" />
+            <span id='currencyCode' style="width: 50px; color:green"></span>
+        </div>
+        <div class="fleft">
+            <br/><input type="button" id="calculate" value="Calculate"/>
+        </div>
+        <div class="fleft">
+            Monthly netto income<br/><input type="text" id="monthlyNettoIncomePln" /> &nbsp; PLN
+        </div>
+    </form>
+
+    <script>
+
+        function updateCurrency( countryCode ) {
+            countryService.getCountry( countryCode, function(country){
+                $('#currencyCode').text(country.currency.code);
+            });
+        };
+
+        $( document ).ready(function() {
+
+            // Initialize first selection
+            $('#countrySelect').change( function() {
+                updateCurrency( this.value );
+            });
+
+            countryService.getCountries(  function(countryCollection) {
+                $.each(countryCollection, function(i, country) {
+                    $('#countrySelect').append('<option value="' + country.code + '">' + country.name + '</option>');
+                    updateCurrency( country.code );
+                });
+            });
+
+
+
+            // Calculate monthly NETTO income  in PLN...
+            $("#calculate").click(function(){
+                countryService.getCountry( $('#countrySelect').val(), function(country) {
+                    var workingDaysInMonth = 22;
+                    var monthlyNettoIncome =  $("#dailyBruttoInCurrency").val() *  workingDaysInMonth;
+                    monthlyNettoIncome = monthlyNettoIncome - (monthlyNettoIncome * country.taxation.value / 100 );
+                    monthlyNettoIncome -=  country.taxation.constantCosts;
+
+                    // calculate to PLN
+                    nbpService.getCurrentRate( country.currency.code, function(rate) {
+                        monthlyNettoIncome *= rate;
+                        monthlyNettoIncome = monthlyNettoIncome.toFixed(2);
+                        $('#monthlyNettoIncomePln').val(monthlyNettoIncome);
+                    });
+
+                });
+
+            });
+        });
+
+
+    </script>
+</body>
+</html>

@@ -28,6 +28,19 @@
     </form>
 
     <script>
+        $( document ).ready(function() {
+
+            initAvailableCountries();
+
+            $('#countrySelect').change( function() {
+                updateCurrency( this.value );
+            });
+
+            $("#calculate").click( function(){
+                calculateMonthlyNettoIncomeInPLN()
+            });
+
+        });
 
         function updateCurrency( countryCode ) {
             countryService.getCountry( countryCode, function(country){
@@ -35,42 +48,30 @@
             });
         };
 
-        $( document ).ready(function() {
+        function calculateMonthlyNettoIncomeInPLN() {
+            countryService.getCountry( $('#countrySelect').val(), function(country) {
+                var workingDaysInMonth = 22;
+                var monthlyNettoIncome =  $("#dailyBruttoInCurrency").val() *  workingDaysInMonth;
+                monthlyNettoIncome = monthlyNettoIncome - (monthlyNettoIncome * country.taxation.value / 100 );
+                monthlyNettoIncome -=  country.taxation.constantCosts;
 
-            // Initialize first selection
-            $('#countrySelect').change( function() {
-                updateCurrency( this.value );
+                // convert to PLN
+                nbpService.getCurrentRate( country.currency.code, function(rate) {
+                    monthlyNettoIncome *= rate;
+                    monthlyNettoIncome = monthlyNettoIncome.toFixed(2);
+                    $('#monthlyNettoIncomePln').val(monthlyNettoIncome);
+                });
             });
+        };
 
+        function initAvailableCountries() {
             countryService.getCountries(  function(countryCollection) {
                 $.each(countryCollection, function(i, country) {
                     $('#countrySelect').append('<option value="' + country.code + '">' + country.name + '</option>');
                     updateCurrency( country.code );
                 });
             });
-
-
-
-            // Calculate monthly NETTO income  in PLN...
-            $("#calculate").click(function(){
-                countryService.getCountry( $('#countrySelect').val(), function(country) {
-                    var workingDaysInMonth = 22;
-                    var monthlyNettoIncome =  $("#dailyBruttoInCurrency").val() *  workingDaysInMonth;
-                    monthlyNettoIncome = monthlyNettoIncome - (monthlyNettoIncome * country.taxation.value / 100 );
-                    monthlyNettoIncome -=  country.taxation.constantCosts;
-
-                    // calculate to PLN
-                    nbpService.getCurrentRate( country.currency.code, function(rate) {
-                        monthlyNettoIncome *= rate;
-                        monthlyNettoIncome = monthlyNettoIncome.toFixed(2);
-                        $('#monthlyNettoIncomePln').val(monthlyNettoIncome);
-                    });
-
-                });
-
-            });
-        });
-
+        };
 
     </script>
 </body>
